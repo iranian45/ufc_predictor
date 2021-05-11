@@ -126,12 +126,10 @@ inverse_df.columns = df_perf.columns
 df = pd.concat((df_perf, inverse_df)).sort_index().reset_index(drop=True)
 
 df.drop_duplicates(inplace=True, ignore_index=True)
-# df.query('F1_URL =="http://www.ufcstats.com/fighter-details/1338e2c7480bdf9e"', inplace=True)
 
 # Add calculated columns
 df['F1_Age'] = (df.Fight_Date - df.F1_DoB).astype('m8[Y]')
 df['F2_Age'] = (df.Fight_Date - df.F2_DoB).astype('m8[Y]')
-# df['Fight_Duration'] = ((df['Round_Finished'] - 1) * pd.Timedelta(minutes=5) + df['Stop_Time']) / np.timedelta64(1, 's')
 df['Weight_Class'] = df['Fight_Title'].apply(lambda x: extract(x))
 
 
@@ -157,7 +155,6 @@ def f2_sub_landed(row):
 df['F2_Sub_Landed'] = df.apply(lambda row: f2_sub_landed(row), axis=1)
 
 # # Filter Data
-df.query('Fight_Date >="2010-01-01"', inplace=True)
 
 # Calculate Deltas
 df_Minimized = df.sort_values(by='Fight_Date')
@@ -227,12 +224,12 @@ df_Minimized['F2_Sig_Str_Head_Landed_Cum'] = df_Minimized[{'F2_URL', 'F2_Sig_Str
     apply(lambda x: x.shift().cumsum()).fillna(0)
 df_Minimized['F2_avg_Sig_Str_Head_Landed'] = (
         df_Minimized['F2_Sig_Str_Head_Landed'] / df_Minimized['F2_Fight_Count']).fillna(0).round(2)
-df_Minimized['F1_Sig_Str_Head_Attempted_Cum'] = df_Minimized[{'F1_URL', 'F1_Sig_Str_Head_Attempted'}].groupby('F1_URL'). \
-    apply(lambda x: x.shift().cumsum()).fillna(0)
+df_Minimized['F1_Sig_Str_Head_Attempted_Cum'] = df_Minimized[{'F1_URL', 'F1_Sig_Str_Head_Attempted'}].\
+    groupby('F1_URL').apply(lambda x: x.shift().cumsum()).fillna(0)
 df_Minimized['F1_avg_Sig_Str_Head_Attempted'] = (
         df_Minimized['F1_Sig_Str_Head_Attempted_Cum'] / df_Minimized['F1_Fight_Count']).fillna(0).round(2)
-df_Minimized['F2_Sig_Str_Head_Attempted_Cum'] = df_Minimized[{'F2_URL', 'F2_Sig_Str_Head_Attempted'}].groupby('F2_URL'). \
-    apply(lambda x: x.shift().cumsum()).fillna(0)
+df_Minimized['F2_Sig_Str_Head_Attempted_Cum'] = df_Minimized[{'F2_URL', 'F2_Sig_Str_Head_Attempted'}].\
+    groupby('F2_URL').apply(lambda x: x.shift().cumsum()).fillna(0)
 df_Minimized['F2_avg_Sig_Str_Head_Attempted'] = (
         df_Minimized['F2_Sig_Str_Head_Attempted_Cum'] / df_Minimized['F2_Fight_Count']).fillna(0).round(2)
 df_Minimized['F1_Avg_Sig_Str_Head_Accuracy'] = (
@@ -250,12 +247,12 @@ df_Minimized['F2_Sig_Str_Body_Landed_Cum'] = df_Minimized[{'F2_URL', 'F2_Sig_Str
     apply(lambda x: x.shift().cumsum()).fillna(0)
 df_Minimized['F2_avg_Sig_Str_Body_Landed'] = (
         df_Minimized['F2_Sig_Str_Body_Landed'] / df_Minimized['F2_Fight_Count']).fillna(0).round(2)
-df_Minimized['F1_Sig_Str_Body_Attempted_Cum'] = df_Minimized[{'F1_URL', 'F1_Sig_Str_Body_Attempted'}].groupby('F1_URL'). \
-    apply(lambda x: x.shift().cumsum()).fillna(0)
+df_Minimized['F1_Sig_Str_Body_Attempted_Cum'] = df_Minimized[{'F1_URL', 'F1_Sig_Str_Body_Attempted'}].\
+    groupby('F1_URL').apply(lambda x: x.shift().cumsum()).fillna(0)
 df_Minimized['F1_avg_Sig_Str_Body_Attempted'] = (
         df_Minimized['F1_Sig_Str_Body_Attempted_Cum'] / df_Minimized['F1_Fight_Count']).fillna(0).round(2)
-df_Minimized['F2_Sig_Str_Body_Attempted_Cum'] = df_Minimized[{'F2_URL', 'F2_Sig_Str_Body_Attempted'}].groupby('F2_URL'). \
-    apply(lambda x: x.shift().cumsum()).fillna(0)
+df_Minimized['F2_Sig_Str_Body_Attempted_Cum'] = df_Minimized[{'F2_URL', 'F2_Sig_Str_Body_Attempted'}].\
+    groupby('F2_URL').apply(lambda x: x.shift().cumsum()).fillna(0)
 df_Minimized['F2_avg_Sig_Str_Body_Attempted'] = (
         df_Minimized['F2_Sig_Str_Body_Attempted_Cum'] / df_Minimized['F2_Fight_Count']).fillna(0).round(2)
 df_Minimized['F1_Avg_Sig_Str_Body_Accuracy'] = (
@@ -455,28 +452,23 @@ df_Minimized.F2_Status = pd.Categorical(df_Minimized.F2_Status)
 df_Pred = df_Minimized[df_Minimized.F1_Status.isnull()]
 df_Minimized = df_Minimized[df_Minimized.F1_Status.notnull()]
 
-
 df_Minimized.loc[df_Minimized.F1_Status == 'W', 'Winner'] = 1
 df_Minimized.loc[df_Minimized.F2_Status == 'W', 'Winner'] = 2
 final = df_Minimized.drop(df_Minimized[{'F1_Status', 'F2_Status'}], axis=1)
 df_Pred = df_Pred.drop(df_Pred[{'F1_Status', 'F2_Status'}], axis=1)
-# df_Pred['Winner'] = None
-
-# df_Pred.to_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-#                             '\\test2.csv')
-
-# # final = pd.get_dummies(final, prefix=['F1_URL', 'F2_URL'], columns=['F1_URL', 'F2_URL'])
 
 final = final.drop(final[{'F1_URL', 'F2_URL'}], axis=1)
 
 X = final.drop(['Winner'], axis=1)
-X = X.notna()
+X = X.fillna(0)
+X = X.replace(np.inf, 0)
 y = final['Winner']
-y = y.notna()
+y = y.fillna(0)
+y = y.replace(np.inf, 0)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
-logreg = LogisticRegression()
+logreg = LogisticRegression(solver='lbfgs', max_iter=1000000)
 logreg.fit(X_train, y_train)
 score = logreg.score(X_train, y_train)
 score2 = logreg.score(X_test, y_test)
@@ -484,31 +476,39 @@ score2 = logreg.score(X_test, y_test)
 print("Training set Accuracy: ", '%.3f' % score)
 print("Test set accuracy", '%.3f' % score2)
 
+
+
 pred_set = df_Pred
 backup_pred_set = pred_set[{'F1_URL', 'F2_URL'}]
 pred_set = pred_set.drop(pred_set[{'F1_URL', 'F2_URL'}], axis=1)
 
-# missing_cols = set(final.columns) - set(pred_set.columns)
-# for c in missing_cols:
-#     pred_set[c] = 0
-# pred_set = pred_set[final.columns]
-#
-# pred_set = pred_set.drop(['Winner'], axis=1)
-
-# print(pred_set.columns)
 predictions = logreg.predict(pred_set)
-print(predictions)
-pred_set.to_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                            '\\predset.csv')
-#
-# print(backup_pred_set.iloc[10, 0], " 0 ")
-# print(backup_pred_set.iloc[10, 1], " 1 ")
-# # print(backup_pred_set.iloc[10, 2], " 2 ")
-# for i in range(df_Pred.shape[0]):
-#     print(backup_pred_set.iloc[i, 0], " and ", backup_pred_set.iloc[i, 1])
-#     if predictions[i] == 1:
-#         print("Winner: ", backup_pred_set.iloc[i, 0])
-#
-#     else:
-#         print("Winner: ", backup_pred_set.iloc[i, 1])
-#     print("")
+
+results = pd.DataFrame([])
+
+for i in range(df_Pred.shape[0]):
+    if predictions[i] == 1:
+        results = results.append(pd.DataFrame({'F1_URL': backup_pred_set.iloc[i, 0],
+                                               'F2_URL': backup_pred_set.iloc[i, 1],
+                                               'Winner_URL': backup_pred_set.iloc[i, 0]}, index=[0]), ignore_index=True)
+    else:
+        results = results.append(pd.DataFrame({'F1_URL': backup_pred_set.iloc[i, 0],
+                                               'F2_URL': backup_pred_set.iloc[i, 1],
+                                               'Winner_URL': backup_pred_set.iloc[i, 1]}, index=[0]), ignore_index=True)
+
+df_next = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
+                            '\\next_fight_schedule.csv')
+
+results = pd.merge(results, df[['F1_URL', 'F1_First', 'F1_Last']], on='F1_URL', how='left')
+results = pd.merge(results, df[['F2_URL', 'F2_First', 'F2_Last']], on='F2_URL', how='left')
+results = pd.merge(results, df[['F1_URL', 'F1_First', 'F1_Last']], left_on='Winner_URL', right_on='F1_URL', how='left')
+results['F1'] = results['F1_First_x'] + " " + results['F1_Last_x']
+results['F2'] = results['F2_First'] + " " + results['F2_Last']
+results['Winner'] = results['F1_First_y'] + " " + results['F1_Last_y']
+results = results[{'F1', 'F2', 'Winner'}]
+
+results.drop_duplicates(inplace=True)
+column_order = ['F1', 'F2', 'Winner']
+results[column_order].to_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
+                             '\\results\\results - %s.csv' % datetime.datetime.today()
+                             .strftime('%Y-%m-%d %H%M%S'), index=False)
