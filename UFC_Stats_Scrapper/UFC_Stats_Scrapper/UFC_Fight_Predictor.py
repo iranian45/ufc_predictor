@@ -4,6 +4,8 @@ import pandas as pd
 import re
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from matplotlib import pyplot
 import numpy as np
 from datetime import timedelta
 
@@ -22,14 +24,10 @@ def extract(x):
 
 
 # Import csv files
-df_fight_info = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                            '\\fight_info.csv')
-df_fighter_info = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                              '\\fighter_details.csv')
-df_fight_details = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                               '\\fight_details.csv')
-df_next_fight_details = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                                    '\\next_fight_info.csv')
+df_fight_info = pd.read_csv('.\\spiders\\CSV\\fight_info.csv')
+df_fighter_info = pd.read_csv('.\\spiders\\CSV\\fighter_details.csv')
+df_fight_details = pd.read_csv('.\\spiders\\CSV\\fight_details.csv')
+df_next_fight_details = pd.read_csv('.\\spiders\\CSV\\next_fight_info.csv')
 # Filter Next Fight Info for upcoming fights
 df_next_fight_details['Fight_Date'] = pd.to_datetime(df_next_fight_details.Fight_Date)
 today = datetime.datetime.today()
@@ -94,7 +92,7 @@ df_perf = df_perf[['Fight_Title', 'Fight_URL', 'Fight_Date', 'Event_Name', 'Even
 
 # Replace bad data to None and Convert Types
 # df_perf = df_perf.replace({np.nan: None})
-df_perf.replace('--', None, inplace=True)
+df_perf.replace({'--': None}, inplace=True)
 df_perf['Fight_Title'] = df_perf['Fight_Title'].astype(str)
 df_perf['Fight_Date'] = df_perf['Fight_Date'].astype('datetime64[ns]')
 df_perf['Stop_Time'] = pd.to_datetime(df_perf['Stop_Time'], format='%M:%S') - \
@@ -452,19 +450,20 @@ df_Minimized.F2_Status = pd.Categorical(df_Minimized.F2_Status)
 df_Pred = df_Minimized[df_Minimized.F1_Status.isnull()]
 df_Minimized = df_Minimized[df_Minimized.F1_Status.notnull()]
 
+df_Minimized.replace({np.inf: np.nan}, inplace=True)
+df_Minimized.dropna(inplace=True)
+
 df_Minimized.loc[df_Minimized.F1_Status == 'W', 'Winner'] = 1
 df_Minimized.loc[df_Minimized.F2_Status == 'W', 'Winner'] = 2
+df_Minimized.loc[df_Minimized.F1_Status == 'D', 'Winner'] = 0
+df_Minimized.loc[df_Minimized.F1_Status == 'NC', 'Winner'] = 0
 final = df_Minimized.drop(df_Minimized[{'F1_Status', 'F2_Status'}], axis=1)
 df_Pred = df_Pred.drop(df_Pred[{'F1_Status', 'F2_Status'}], axis=1)
 
 final = final.drop(final[{'F1_URL', 'F2_URL'}], axis=1)
 
 X = final.drop(['Winner'], axis=1)
-X = X.fillna(0)
-X = X.replace(np.inf, 0)
 y = final['Winner']
-y = y.fillna(0)
-y = y.replace(np.inf, 0)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
@@ -476,17 +475,26 @@ score2 = logreg.score(X_test, y_test)
 print("Training set Accuracy: ", '%.3f' % score)
 print("Test set accuracy", '%.3f' % score2)
 
+df_next = pd.read_csv('.\\spiders\\CSV\\next_fight_schedule.csv')
 
+df_next = df_next.merge(df_Pred, on='F1_URL', how='inner')
+df_next = df_next.drop(df_next[{'F2_URL_y'}], axis=1)
+df_next = df_next.rename(columns={"F2_URL_x": 'F2_URL'})
 
-pred_set = df_Pred
+pred_set = df_next
 backup_pred_set = pred_set[{'F1_URL', 'F2_URL'}]
-pred_set = pred_set.drop(pred_set[{'F1_URL', 'F2_URL'}], axis=1)
+pred_set = pred_set.drop(pred_set[{'F1_URL', 'F1_First', 'F1_Last', 'F2_URL', 'F2_First', 'F2_Last'}], axis=1)
+
+df_next.to_csv('.\\spiders\\CSV\\next.csv')
+df_Pred.to_csv('.\\spiders\\CSV\\Pred.csv')
+
+pred_set = pred_set.apply(lambda x: x.fillna(x.mean()), axis=0)
 
 predictions = logreg.predict(pred_set)
 
 results = pd.DataFrame([])
 
-for i in range(df_Pred.shape[0]):
+for i in range(df_next.shape[0]):
     if predictions[i] == 1:
         results = results.append(pd.DataFrame({'F1_URL': backup_pred_set.iloc[i, 0],
                                                'F2_URL': backup_pred_set.iloc[i, 1],
@@ -496,8 +504,6 @@ for i in range(df_Pred.shape[0]):
                                                'F2_URL': backup_pred_set.iloc[i, 1],
                                                'Winner_URL': backup_pred_set.iloc[i, 1]}, index=[0]), ignore_index=True)
 
-df_next = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                            '\\next_fight_schedule.csv')
 
 results = pd.merge(results, df[['F1_URL', 'F1_First', 'F1_Last']], on='F1_URL', how='left')
 results = pd.merge(results, df[['F2_URL', 'F2_First', 'F2_Last']], on='F2_URL', how='left')
@@ -509,6 +515,7 @@ results = results[{'F1', 'F2', 'Winner'}]
 
 results.drop_duplicates(inplace=True)
 column_order = ['F1', 'F2', 'Winner']
-results[column_order].to_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
-                             '\\results\\results - %s.csv' % datetime.datetime.today()
+results[column_order].to_csv('.\\spiders\\CSV\\results\\results - %s.csv' % datetime.datetime.today()
                              .strftime('%Y-%m-%d %H%M%S'), index=False)
+
+print(results)
