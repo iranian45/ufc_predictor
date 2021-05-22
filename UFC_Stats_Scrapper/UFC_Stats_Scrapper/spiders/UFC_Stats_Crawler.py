@@ -1,7 +1,7 @@
 import scrapy
 import pandas as pd
 import string
-
+# from scrapy.crawler import CrawlerProcess
 
 class FightersURLSpider(scrapy.Spider):
     name = "fighter_urls"
@@ -25,7 +25,7 @@ class FightersURLSpider(scrapy.Spider):
             }
 
 
-urls_csv = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
+urls_csv = pd.read_csv('G:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
                        '\\fighter_urls.csv')
 urls_list = urls_csv.fighter_url.to_list()
 
@@ -86,7 +86,7 @@ class FightUrlsSpider(scrapy.Spider):
             }
 
 
-fight_info_csv = pd.read_csv('F:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
+fight_info_csv = pd.read_csv('G:\\Python\\UFC_Predictor\\UFC_Stats_Scrapper\\UFC_Stats_Scrapper\\spiders\\CSV'
                              '\\fight_info.csv')
 fight_urls_list = fight_info_csv.Fight_URL.to_list()
 
@@ -269,7 +269,7 @@ class NextFightSchedule(scrapy.Spider):
 
     def start_requests(self):
         start_urls = [
-            'http://www.ufcstats.com/event-details/744f50016c39c26c'
+            'http://www.ufcstats.com/event-details/277ffed20cf07aea'
         ]
         for url in start_urls:
             yield scrapy.Request(url=url, callback=self.parse)
@@ -286,3 +286,14 @@ class NextFightSchedule(scrapy.Spider):
                 'F2_Last': fighter.xpath('./td[2]/p[2]/a//text()').extract_first().split()[1].strip(),
             }
 
+
+# process = CrawlerProcess({
+#     'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+# })
+
+# process.crawl(FightersURLSpider)
+# process.crawl(FightersDetailsSpider)
+# process.crawl(FightUrlsSpider)
+# process.crawl(FightDetailsSpider)
+# process.crawl(NextFightSchedule)
+# process.start()
